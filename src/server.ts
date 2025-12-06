@@ -1,9 +1,10 @@
-// import app from "./app";
-// import config from "./config";
 
-const port = 5000
+import connectDB from "./config/db";
+import app from "./app";
+import config from "./config";
 
-// Server
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+connectDB()
+
+app.listen(config.port, () => {
+  console.log(`Vehicle Rental System ${config.port}`);
 });

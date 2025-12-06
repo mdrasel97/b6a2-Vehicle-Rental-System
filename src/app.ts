@@ -1,15 +1,22 @@
-import  express, { Request, Response }  from "express";
-
+import  express, { Request, Response }  from 'express';
+import { userRoutes } from './app/modules/users/user.routes';
 const app = express()
 
-const port = 5000
+
 
 app.use(express.json())
 
 app.get("/", (req: Request, res: Response) => {
     res.send("Hello World of express with typescript!");
 });
+// route call 
+// app.use('/users', userRoutes)
+app.use('/api/v1/users', userRoutes)
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
+// Todo
+// app.use(Not-Found)
+// app.use(Global error handler)
+// app.use(logger)
+
+export default app
+
