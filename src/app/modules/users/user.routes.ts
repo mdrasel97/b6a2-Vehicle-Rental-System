@@ -10,6 +10,7 @@ const router = express.Router()
 // router.post("/", userControllers.createUser)
 router.get("/", auth("admin"), userControllers.getUser)
 router.get("/:userId", userControllers.getSingleUser)
+router.put("/:userId", auth('admin', 'customer'),  userControllers.updateUserById)
 router.delete("/:userId", userControllers.deleteUser)
 
 // vehicle route 

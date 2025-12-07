@@ -1,5 +1,7 @@
+
+
 import { pool } from "../../../config/db";
-import { validate as isUUID } from "uuid";
+import { IVehicle } from "./vehicle.interface";
 
 // vehicle
 const createVehicle = async (payload: Record<string, unknown>)=>{
@@ -46,82 +48,60 @@ const getSingleVehicle = async(id: number)=>{
 // }
 
 //Update Vehicle
-const updateVehicle = async (id: string, payload: Record<string, any>) => {
-  const {
-    vehicle_name,
-    type,
-    registration_number,
-    daily_rent_price,
-    availability_status,
-  } = payload;
+const updateVehicle = async (
+  vehicleId: number,
+  payload: Partial<IVehicle>
+): Promise<IVehicle | null> => {
+  const existingVehicle = await pool.query(
+    `SELECT * FROM vehicles WHERE id = $1`,
+    [vehicleId]
+  );
 
-  if (!id) {
-    throw new Error("Vehicle ID is required");
-  }
-  if (!isUUID(id)) {
-    throw new Error("Invalid vehicle ID");
-  }
-
-  // Check vehicle exists
-  const isExists = await pool.query(`SELECT * FROM vehicles WHERE id = $1`, [
-    id,
-  ]);
-
-  if (isExists.rows.length === 0) {
+  if (existingVehicle.rows.length === 0) {
     throw new Error("Vehicle not found");
   }
 
-  const allowedTypes = ["car", "bike", "van", "suv"];
-  const allowedStatus = ["available", "booked"];
+  const updatedVehicle: IVehicle = {
+    ...existingVehicle.rows[0],
+    ...payload,
+  };
+  const queryText = `UPDATE vehicles SET 
+    vehicle_name = $1, 
+    type = $2, 
+    registration_number = $3, 
+    daily_rent_price = $4, 
+    availability_status = $5 
+    WHERE id = $6 RETURNING *`;
 
-  if (type && !allowedTypes.includes(type.toLowerCase())) {
-    throw new Error("Invalid vehicle type");
-  }
+  const values = [
+    updatedVehicle.vehicle_name,
+    updatedVehicle.type,
+    updatedVehicle.registration_number,
+    updatedVehicle.daily_rent_price,
+    updatedVehicle.availability_status,
+    vehicleId,
+  ];
 
-  if (
-    availability_status &&
-    !allowedStatus.includes(availability_status.toLowerCase())
-  ) {
-    throw new Error("Invalid availability status");
-  }
-
-  if (
-    daily_rent_price &&
-    (typeof daily_rent_price !== "number" || daily_rent_price <= 0)
-  ) {
-    throw new Error("Invalid daily rent price");
-  }
-
-  // ✅ FIXED UPDATE QUERY (no undefined.toLowerCase() problem)
-  const result = await pool.query(
-    `UPDATE vehicles SET  
-        vehicle_name=$1,
-        type=$2,
-        registration_number=$3,
-        daily_rent_price=$4,
-        availability_status=$5 
-      WHERE id=$6 RETURNING *`,
-    [
-      vehicle_name ?? isExists.rows[0].vehicle_name,
-      type ? type.toLowerCase() : isExists.rows[0].type,
-      registration_number ?? isExists.rows[0].registration_number,
-      daily_rent_price ?? isExists.rows[0].daily_rent_price,
-      availability_status
-        ? availability_status.toLowerCase()
-        : isExists.rows[0].availability_status,
-      id,
-    ]
-  );
-
+  const result = await pool.query(queryText, values);
   return result.rows[0];
 };
 
 
 
 const deleteVehicle = async(id:number)=>{
-  const result = await pool.query(`DELETE FROM vehicles WHERE id = $1`, [id])
+  // const result = await pool.query(`DELETE FROM vehicles WHERE id = $1`, [id])
 
-  return result
+  const checkBookingsQuery = `SELECT COUNT(*) FROM bookings WHERE vehicle_id = $1 AND status = 'active'`;
+
+   const bookingsResult = await pool.query(checkBookingsQuery, [id]);
+  if (parseInt(bookingsResult.rows[0].count, 10) > 0) {
+    throw new Error("Cannot delete vehicle with active bookings");
+
+  }
+  const queryText = `DELETE FROM vehicles WHERE id = $1 RETURNING *`;
+  const values = [id];
+  const result = await pool.query(queryText, values);
+  return result.rows[0];
 }
 
 export const vehicleServices = {

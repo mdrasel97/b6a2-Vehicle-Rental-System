@@ -1,4 +1,8 @@
 
+import { StatusCodes } from 'http-status-codes';
+import catchAsync from '../../utils/catchAsync';
+import sendResponse from '../../utils/sendResponse';
+import { IUser } from './user.interface';
 import { userServices } from './user.services';
 import { Request, Response } from "express";
 
@@ -51,63 +55,60 @@ if(result.rows.length == 0){
 }
 
 
-const updateUser = async (req: Request, res: Response) => {
-  const { name, email } = req.body;
-  const { id } = req.params;
-
-  try {
-    const result = await userServices.updateUser(name, email, req.params.id as string)
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
+const updateUserById = catchAsync(
+  async (req: Request & { user?: IUser }, res: Response) => {
+    const userId = Number(req.params.userId);
+    const updateData = req.body;
+    const loggedInUser = req.user as IUser;
+    if (loggedInUser?.role !== "admin" && loggedInUser?.id !== userId) {
+      return sendResponse<IUser | null>(res, {
+        statusCode: StatusCodes.FORBIDDEN,
         success: false,
-        message: "User not found",
+        message: "Forbidden! You can only update your own profile.",
+        data: null,
       });
     }
-
-    return res.status(200).json({
+    if (loggedInUser.role !== "admin" && "role" in updateData) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.FORBIDDEN,
+        success: false,
+        message: "Forbidden! You cannot update your own role.",
+        data: null,
+      });
+    }
+    if (loggedInUser?.role !== "admin" && req.body.role) {
+      delete req.body.role;
+    }
+    const result = await userServices.updateUserById(userId, updateData);
+    sendResponse<IUser | null>(res, {
+      statusCode: result ? StatusCodes.OK : StatusCodes.NOT_FOUND,
       success: true,
-      message: 'User updated successfully',
-      data: result.rows[0],
-    });
-
-  } catch (err: any) {
-    return res.status(500).json({
-      success: false,
-      message: err.message,
+      message: result
+        ? "User updated successfully"
+        : "User not found with the provided ID",
+      data: result,
     });
   }
-}
+);
 
-const deleteUser = async(req: Request, res: Response)=>{
-  // console.log(req.params.id)
-  // res.send({message: 'api is cool'})
-  try{
-const result = await userServices.deleteUser(Number(req.params.userId))
-if(result.rowCount === 0){
-  res.status(404).json({
-    success: false,
-      message: "user not found",
-  })
-}else{
-    res.status(200).json({
-      success: true,
-      message: 'user deleted successfully',
-      data: result.rows
-    })
-  }                    
-  }catch(err:any){
-    return res.status(500).json({
-      success: false,
-      message: err.message,
-    });
-  }
-}
+const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  const userId = Number(req.params.userId);
+  const result = await userServices.deleteUser(userId);
+  sendResponse<IUser | null>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: result
+      ? "User deleted successfully"
+      : "User not found with the provided ID",
+    data: result,
+  });
+});
 
 
 export const userControllers = {
     getUser,
     getSingleUser, 
-    updateUser,
+    updateUserById,
     deleteUser
 }
+

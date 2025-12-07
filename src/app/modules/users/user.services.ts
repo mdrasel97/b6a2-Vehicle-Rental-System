@@ -1,4 +1,6 @@
 import { pool } from "../../../config/db";
+import { hashedPasswordHelper } from "../../utils/hashedPasswordHelper";
+import { IUser } from "./user.interface";
 
 
 
@@ -19,24 +21,48 @@ const getSingleUser = async(id: number)=>{
 }
 
 
-const updateUser = async(name: string, email:string, id:string)=>{
+const updateUserById = async (userId: number, updateData: Partial<IUser>) => {
+  const fields = [];
+  const values = [];
+  let index = 1;
 
-  const result = await pool.query(
-      `UPDATE users 
-       SET name=$1, email=$2 
-       WHERE id=$3 
-       RETURNING *`,
-      [id]
+  for (const key in updateData) {
+    fields.push(`${key} = $${index}`);
+    values.push((updateData as any)[key]);
+    index++;
+  }
+
+  if (fields.length === 0) {
+    return null;
+  }
+  const hashedPasswordIndex = fields.findIndex((field) =>
+    field.startsWith("password =")
+  );
+  if (hashedPasswordIndex !== -1) {
+    const hashedPassword = await hashedPasswordHelper.hashedPassword(
+      values[hashedPasswordIndex]
     );
+    values[hashedPasswordIndex] = hashedPassword;
+  }
+  const queryText = `UPDATE users SET ${fields.join(
+    ", "
+  )}, updated_at = NOW() WHERE id = $${index} RETURNING id, name, email, role, phone, created_at, updated_at`;
+  values.push(userId);
+  const result = await pool.query(queryText, values);
+  return result.rows[0] as IUser | null;
+};
 
-    return result
+const deleteUser = async (userId: number) => {
+  const queryText = `DELETE FROM users WHERE id = $1 RETURNING *`;
+  const checkBookingsQuery = `SELECT COUNT(*) FROM bookings WHERE customer_id = $1 AND status = 'active'`;
+  const bookingsResult = await pool.query(checkBookingsQuery, [userId]);
+  if (parseInt(bookingsResult.rows[0].count, 10) > 0) {
+  throw new Error("Cannot delete user with active bookings");
 }
 
-const deleteUser = async(id:number)=>{
-  const result = await pool.query(`DELETE FROM users WHERE id = $1`, [id])
-
-  return result
-}
+  const result = await pool.query(queryText, [userId]);
+  return result.rows[0] as IUser | null;
+};
 
 
 
@@ -44,6 +70,6 @@ const deleteUser = async(id:number)=>{
 export const userServices = {
     getUser,
     getSingleUser, 
-    updateUser, 
+    updateUserById, 
     deleteUser
 }

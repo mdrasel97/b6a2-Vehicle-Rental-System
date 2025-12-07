@@ -2,6 +2,9 @@ import  HttpStatus  from 'http-status';
 import { Request, Response } from "express";
 import { vehicleServices } from "./vehicle.services";
 import sendResponse from "../../utils/sendResponse";
+import catchAsync from '../../utils/catchAsync';
+import { IVehicle } from './vehicle.interface';
+import { StatusCodes } from 'http-status-codes';
 
 //vehicle collection
 const createVehicle = async(req:Request, res: Response)=>{
@@ -106,61 +109,27 @@ if(result.rows.length == 0){
 // }
 
 
-const updateVehicle = async (req: Request, res: Response) => {
-  try {
-    const { vehicleId } = req.params;
-    const result = await vehicleServices.updateVehicle(vehicleId as string, req.body);
+const updateVehicle = catchAsync(async (req: Request, res: Response) => {
+  const vehicleId = Number(req.params.vehicleId);
+  const result = await vehicleServices.updateVehicle(vehicleId, req.body);
+  sendResponse<IVehicle | null>(res, {
+    statusCode: result ? StatusCodes.OK : StatusCodes.NOT_FOUND,
+    success: true,
+    message: result ? "Vehicle updated successfully" : "Vehicle not found",
+    data: result,
+  });
+});
 
-    return sendResponse(res, {
-      statusCode: HttpStatus.OK,
-      success: true,
-      message: "Vehicle updated successfully",
-      data: result,
-    });
-  } catch (error: any) {
-    let status: number = HttpStatus.BAD_REQUEST;
-    if (
-      error.message.includes("required") ||
-      error.message.includes("Invalid")
-    ) {
-      status = HttpStatus.BAD_REQUEST;
-    } else if (error.message.includes("not found")) {
-      status = HttpStatus.NOT_FOUND;
-    } else {
-      status = HttpStatus.INTERNAL_SERVER_ERROR;
-    }
-    return res.status(status).json({
-      success: false,
-      message: `Failed to update vehicle`,
-      errors: error.message,
-    });
-  }
-};
-
-const deleteVehicle = async(req: Request, res: Response)=>{
-  // console.log(req.params.id)
-  // res.send({message: 'api is cool'})
-  try{
-const result = await vehicleServices.deleteVehicle(Number(req.params.vehicleId))
-if(result.rowCount === 0){
-  res.status(404).json({
-    success: false,
-      message: "Vehicle not found",
-  })
-}else{
-    res.status(200).json({
-      success: true,
-      message: 'Vehicle deleted successfully',
-      data: result.rows
-    })
-  }                    
-  }catch(err:any){
-    return res.status(500).json({
-      success: false,
-      message: err.message,
-    });
-  }
-}
+const deleteVehicle = catchAsync(async (req: Request, res: Response) => {
+  const vehicleId = Number(req.params.vehicleId);
+  const result = await vehicleServices.deleteVehicle(vehicleId);
+  sendResponse<IVehicle | null>(res, {
+    statusCode: result ? StatusCodes.OK : StatusCodes.NOT_FOUND,
+    success: true,
+    message: result ? "Vehicle deleted successfully" : "Vehicle not found",
+    data: result,
+  });
+});
 
 
 export const vehicleControllers = {
