@@ -41,31 +41,31 @@ const getVehicle = async(req: Request, res:Response)=>{
 }
 
 
-// const getSingleUser = async(req: Request, res: Response)=>{
-//   console.log(req.params.id)
-//   // res.send({message: 'api is cool'})
-//   try{
-// const result = await userServices.getSingleUser(Number(req.params.userId))
+const getSingleVehicle = async(req: Request, res: Response)=>{
+  // console.log(req.params.id)
+  // res.send({message: 'api is cool'})
+  try{
+const result = await vehicleServices.getSingleVehicle(Number(req.params.vehicleId))
 
-// if(result.rows.length == 0){
-//   res.status(404).json({
-//     success: false,
-//       message: "user not found",
-//   })
-// }else{
-//     res.status(200).json({
-//       success: true,
-//       message: 'user fetched successfully',
-//       data: result.rows[0]
-//     })
-//   }                    
-//   }catch(err:any){
-//     return res.status(500).json({
-//       success: false,
-//       message: err.message,
-//     });
-//   }
-// }
+if(result.rows.length == 0){
+  res.status(404).json({
+    success: false,
+      message: "user not found",
+  })
+}else{
+    res.status(200).json({
+      success: true,
+      message: 'Vehicle retrieved successfully',
+      data: result.rows[0]
+    })
+  }                    
+  }catch(err:any){
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+}
 
 
 // const updateUser = async (req: Request, res: Response) => {
@@ -96,33 +96,35 @@ const getVehicle = async(req: Request, res:Response)=>{
 //   }
 // }
 
-// const deleteUser = async(req: Request, res: Response)=>{
-//   // console.log(req.params.id)
-//   // res.send({message: 'api is cool'})
-//   try{
-// const result = await userServices.deleteUser(Number(req.params.userId))
-// if(result.rowCount === 0){
-//   res.status(404).json({
-//     success: false,
-//       message: "user not found",
-//   })
-// }else{
-//     res.status(200).json({
-//       success: true,
-//       message: 'user deleted successfully',
-//       data: result.rows
-//     })
-//   }                    
-//   }catch(err:any){
-//     return res.status(500).json({
-//       success: false,
-//       message: err.message,
-//     });
-//   }
-// }
+const deleteVehicle = async(req: Request, res: Response)=>{
+  // console.log(req.params.id)
+  // res.send({message: 'api is cool'})
+  try{
+const result = await vehicleServices.deleteVehicle(Number(req.params.vehicleId))
+if(result.rowCount === 0){
+  res.status(404).json({
+    success: false,
+      message: "Vehicle not found",
+  })
+}else{
+    res.status(200).json({
+      success: true,
+      message: 'Vehicle deleted successfully',
+      data: result.rows
+    })
+  }                    
+  }catch(err:any){
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+}
 
 
 export const vehicleControllers = {
  createVehicle,
  getVehicle,
+ getSingleVehicle,
+ deleteVehicle
 }

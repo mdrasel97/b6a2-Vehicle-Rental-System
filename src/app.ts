@@ -14,6 +14,7 @@ app.get("/", (req: Request, res: Response) => {
 // app.use('/users', userRoutes)
 app.use('/api/v1/users', userRoutes)
 app.use('/api/v1/vehicles', vehicleRoutes)
+// app.use('/api/v1/vehicles',)
 
 // Todo
 // app.use(Not-Found)
