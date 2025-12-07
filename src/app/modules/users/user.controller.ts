@@ -3,26 +3,7 @@ import { userServices } from './user.services';
 import { Request, Response } from "express";
 
 
-const createUser = async(req:Request, res: Response)=>{
-    //  const { name, email, password, phone, role } = req.body;
 
-  try {
-    const result = await userServices.createUser(req.body)
-
-    console.log(result.rows[0]);
-
-    return res.status(201).json({
-      success: true,
-      message: "Data inserted",
-      data: result.rows[0],
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-}
 
 const getUser = async(req: Request, res:Response)=>{
   try{
@@ -125,7 +106,6 @@ if(result.rowCount === 0){
 
 
 export const userControllers = {
-    createUser, 
     getUser,
     getSingleUser, 
     updateUser,
