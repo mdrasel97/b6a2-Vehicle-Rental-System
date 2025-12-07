@@ -4,6 +4,7 @@ import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { BookingServices } from "./booking.services";
 import calculateTotalPrice from "../../utils/calculateTotalPrice";
+import { IUser } from "../users/user.interface";
 
 const createBooking = catchAsync(async (req: Request, res: Response) => {
   const bookingData = req.body;
@@ -100,39 +101,137 @@ const createBooking = catchAsync(async (req: Request, res: Response) => {
 
 
 
-// const getAllBookings = catchAsync(
-//   async (req: Request & { user?: IUser }, res: Response) => {
-//     const loggedInUser = req.user;
-//     if (loggedInUser?.role === "admin") {
-//       const result = await BookingServices.adminGetAllBookings();
-//       sendResponse(res, {
-//         statusCode: StatusCodes.OK,
-//         success: true,
-//         message: "Bookings retrieved successfully.",
-//         data: result,
-//       });
-//     } else if (loggedInUser?.role === "customer") {
-//       const result = await BookingServices.customerGetAllBookings(
-//         Number(loggedInUser.id)
-//       );
-//       sendResponse(res, {
-//         statusCode: StatusCodes.OK,
-//         success: true,
-//         message: "Bookings retrieved successfully.",
-//         data: result,
-//       });
-//     } else {
-//       sendResponse(res, {
-//         statusCode: StatusCodes.FORBIDDEN,
-//         success: false,
-//         message: "You do not have permission to access this resource.",
-//         data: null,
-//       });
-//     }
-//   }
-// );
+const getAllBookings = catchAsync(
+  async (req: Request & { user?: IUser }, res: Response) => {
+    const loggedInUser = req.user;
+    // console.log(loggedInUser)
+    if (loggedInUser?.role === "admin") {
+      const result = await BookingServices.getBookingsForAdmin();
+      sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: "Bookings retrieved successfully.",
+        data: result,
+      });
+    } else if (loggedInUser?.role === "customer") {
+      const result = await BookingServices.GetBookingsForCustomer(
+        Number(loggedInUser.id)
+      );
+      sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: "Bookings retrieved successfully.",
+        data: result,
+      });
+    } else {
+      sendResponse(res, {
+        statusCode: StatusCodes.FORBIDDEN,
+        success: false,
+        message: "You do not have permission to access this resource.",
+        data: null,
+      });
+    }
+  }
+);
+
+
+const updateBookingStatus = catchAsync(
+  async (req: Request & { user?: IUser }, res: Response) => {
+    const loggedInUser = req.user;
+    const bookingId = Number(req.params.bookingId);
+    const { status } = req.body;
+    const getExistingBooking = await BookingServices.getBookingById(bookingId);
+    if (!getExistingBooking) {
+      sendResponse(res, {
+        statusCode: StatusCodes.NOT_FOUND,
+        success: false,
+        message: "Booking not found with the provided bookingId.",
+        data: null,
+      });
+      return;
+    }
+    if (status === "cancelled" && loggedInUser?.role === "customer") {
+      if (getExistingBooking.customer_id !== loggedInUser.id) {
+        sendResponse(res, {
+          statusCode: StatusCodes.FORBIDDEN,
+          success: false,
+          message: "Customer can only cancel their own booking.",
+          data: null,
+        });
+        return;
+      }
+      const now = new Date();
+      if (new Date(getExistingBooking.rent_start_date) <= now) {
+        sendResponse(res, {
+          statusCode: StatusCodes.BAD_REQUEST,
+          success: false,
+          message: "Cannot cancel booking after it has started.",
+          data: null,
+        });
+        return;
+      }
+      const updatedBooking = await BookingServices.updateBookingStatus(
+        bookingId,
+        status
+      );
+      await BookingServices.updateVehicleAvailability(
+        getExistingBooking.vehicle_id,
+        "available"
+      );
+      sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: "Booking cancelled successfully.",
+        data: {
+          id: updatedBooking.id,
+          customer_id: updatedBooking.customer_id,
+          vehicle_id: updatedBooking.vehicle_id,
+          rent_start_date: updatedBooking.rent_start_date,
+          rent_end_date: updatedBooking.rent_end_date,
+          total_price: Number(updatedBooking.total_price),
+          status: updatedBooking.status,
+        },
+      });
+    } else if (status === "returned" && loggedInUser?.role === "admin") {
+      const updatedBooking = await BookingServices.updateBookingStatus(
+        bookingId,
+        status
+      );
+      await BookingServices.updateVehicleAvailability(
+        getExistingBooking.vehicle_id,
+        "available"
+      );
+      sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: "Booking returned successfully.",
+        data: {
+          id: updatedBooking.id,
+          customer_id: updatedBooking.customer_id,
+          vehicle_id: updatedBooking.vehicle_id,
+          rent_start_date: updatedBooking.rent_start_date,
+          rent_end_date: updatedBooking.rent_end_date,
+          total_price: Number(updatedBooking.total_price),
+          status: updatedBooking.status,
+          vehicle: {
+            availability_status: updatedBooking.availability_status,
+          },
+        },
+      });
+    } else {
+      sendResponse(res, {
+        statusCode: StatusCodes.FORBIDDEN,
+        success: false,
+        message: "You do not have permission to update this booking status.",
+        data: null,
+      });
+    }
+  }
+);
 
 export const BookingController = {
   createBooking,
-//   getAllBookings,
+  getAllBookings,
+  updateBookingStatus
+
 };

@@ -6,7 +6,7 @@ import config from "../../config";
 
 
 export const auth = (...roles: string[]) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request & { user?: any }, res: Response, next: NextFunction) => {
     try {
       const authorization = req.headers.authorization;
 
@@ -29,6 +29,8 @@ export const auth = (...roles: string[]) => {
         token,
         config.jwtSecret as string
       ) as JwtPayload;
+
+      req.user = decoded;
 
       if (roles.length && !roles.includes(decoded.role as string)) {
         return res.status(HttpStatus.UNAUTHORIZED).json({

@@ -12,7 +12,7 @@ const getUser = async ()=>{
 }
 
 const getSingleUser = async(id: number)=>{
-    console.log(id)
+    // console.log(id)
   const result =  await pool.query(`SELECT * FROM users WHERE id = $1`, [id])
 
   return result 

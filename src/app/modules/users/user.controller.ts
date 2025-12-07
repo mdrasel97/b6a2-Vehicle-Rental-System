@@ -25,7 +25,7 @@ const getUser = async(req: Request, res:Response)=>{
 
 
 const getSingleUser = async(req: Request, res: Response)=>{
-  console.log(req.params.id)
+  // console.log(req.params.id)
   // res.send({message: 'api is cool'})
   try{
 const result = await userServices.getSingleUser(Number(req.params.userId))
