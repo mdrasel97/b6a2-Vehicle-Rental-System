@@ -2,6 +2,7 @@ import  express, { Request, Response }  from 'express';
 import { userRoutes } from './app/modules/users/user.routes';
 import { vehicleRoutes } from './app/modules/vehicles/vehicle.routes';
 import authRoutes from './app/modules/auth/auth.routes';
+import { BookingRoutes } from './app/modules/bookings/booking.routes';
 const app = express()
 
 
@@ -15,7 +16,8 @@ app.get("/", (req: Request, res: Response) => {
 app.use('/api/v1/auth', authRoutes)
 app.use('/api/v1/users', userRoutes)
 app.use('/api/v1/vehicles', vehicleRoutes)
-// app.use('/api/v1/vehicles',)
+app.use('/api/v1/bookings', BookingRoutes)
+
 
 // Todo
 // app.use(Not-Found)

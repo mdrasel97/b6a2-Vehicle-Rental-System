@@ -1,5 +1,7 @@
+import  HttpStatus  from 'http-status';
 import { Request, Response } from "express";
 import { vehicleServices } from "./vehicle.services";
+import sendResponse from "../../utils/sendResponse";
 
 //vehicle collection
 const createVehicle = async(req:Request, res: Response)=>{
@@ -11,7 +13,7 @@ const createVehicle = async(req:Request, res: Response)=>{
 
     return res.status(201).json({
       success: true,
-      message: "Data inserted",
+      message: "Vehicle created successfully",
       data: result.rows[0],
     });
   } catch (error: any) {
@@ -96,6 +98,38 @@ if(result.rows.length == 0){
 //   }
 // }
 
+
+const updateVehicle = async (req: Request, res: Response) => {
+  try {
+    const { vehicleId } = req.params;
+    const result = await vehicleServices.updateVehicle(vehicleId as string, req.body);
+
+    return sendResponse(res, {
+      statusCode: HttpStatus.OK,
+      success: true,
+      message: "Vehicle updated successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    let status: number = HttpStatus.BAD_REQUEST;
+    if (
+      error.message.includes("required") ||
+      error.message.includes("Invalid")
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+    } else if (error.message.includes("not found")) {
+      status = HttpStatus.NOT_FOUND;
+    } else {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+    return res.status(status).json({
+      success: false,
+      message: `Failed to update vehicle`,
+      errors: error.message,
+    });
+  }
+};
+
 const deleteVehicle = async(req: Request, res: Response)=>{
   // console.log(req.params.id)
   // res.send({message: 'api is cool'})
@@ -126,5 +160,6 @@ export const vehicleControllers = {
  createVehicle,
  getVehicle,
  getSingleVehicle,
+ updateVehicle,
  deleteVehicle
 }
